@@ -4,12 +4,19 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use anyhow::{bail, Result};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
+#[derive(Clone, Copy, ValueEnum)]
+pub enum OutputFormat {
+    Jpeg,
+    Tiff,
+    Png,
+}
+
 #[derive(Parser)]
-#[command(name = "rawdog", about = "Raw files in, JPEGs out. No Lightroom, no fuss.")]
+#[command(name = "rawdog", about = "Raw files in, images out. No Lightroom, no fuss.")]
 struct Cli {
     /// One or more ARW files or directories containing ARW files
     #[arg(required = true)]
@@ -19,7 +26,11 @@ struct Cli {
     #[arg(short, long)]
     output: Option<PathBuf>,
 
-    /// JPEG quality (1-100)
+    /// Output format
+    #[arg(short, long, value_enum, default_value_t = OutputFormat::Jpeg)]
+    format: OutputFormat,
+
+    /// JPEG quality (1-100, ignored for tiff/png)
     #[arg(short, long, default_value_t = 92, value_parser = clap::value_parser!(u8).range(1..=100))]
     quality: u8,
 
@@ -57,7 +68,7 @@ fn main() -> Result<()> {
     );
 
     files.par_iter().for_each(|input_path| {
-        let output_path = make_output_path(input_path, cli.output.as_deref());
+        let output_path = make_output_path(input_path, cli.output.as_deref(), cli.format);
 
         // Skip if exists and overwrite is not set
         if !cli.overwrite && output_path.exists() {
@@ -66,7 +77,8 @@ fn main() -> Result<()> {
             return;
         }
 
-        match converter::convert_arw_to_jpeg(input_path, &output_path, cli.quality, cli.resize) {
+        match converter::convert_arw(input_path, &output_path, cli.format, cli.quality, cli.resize)
+        {
             Ok(()) => {
                 succeeded.fetch_add(1, Ordering::Relaxed);
             }
@@ -123,13 +135,18 @@ fn is_arw(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Build the output JPEG path for a given input ARW file.
-fn make_output_path(input: &Path, output_dir: Option<&Path>) -> PathBuf {
+/// Build the output path for a given input ARW file.
+fn make_output_path(input: &Path, output_dir: Option<&Path>, format: OutputFormat) -> PathBuf {
     let stem = input.file_stem().unwrap_or_default();
-    let jpeg_name = format!("{}.jpg", stem.to_string_lossy());
+    let ext = match format {
+        OutputFormat::Jpeg => "jpg",
+        OutputFormat::Tiff => "tiff",
+        OutputFormat::Png => "png",
+    };
+    let file_name = format!("{}.{}", stem.to_string_lossy(), ext);
 
     match output_dir {
-        Some(dir) => dir.join(jpeg_name),
-        None => input.with_file_name(jpeg_name),
+        Some(dir) => dir.join(file_name),
+        None => input.with_file_name(file_name),
     }
 }

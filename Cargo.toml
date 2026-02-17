@@ -2,13 +2,13 @@
 name = "rawdog"
 version = "0.1.0"
 edition = "2021"
-description = "Raw files in, JPEGs out. No Lightroom, no fuss."
+description = "Raw files in, images out. No Lightroom, no fuss."
 license = "MIT"
 
 [dependencies]
 rawloader = "0.37"
 imagepipe = "0.5"
-image = { version = "0.25", default-features = false, features = ["jpeg"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "tiff"] }
 clap = { version = "4", features = ["derive"] }
 rayon = "1.10"
 anyhow = "1"

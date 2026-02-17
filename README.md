@@ -1,8 +1,8 @@
 # RawDog
 
-Raw files in, JPEGs out. No Lightroom, no fuss.
+Raw files in, images out. No Lightroom, no fuss.
 
-A no-nonsense Sony ARW to JPEG converter.
+A no-nonsense Sony ARW converter supporting JPEG, TIFF, and PNG output.
 
 ## Installation
 
@@ -40,6 +40,18 @@ Set JPEG quality to 85:
 
 ```sh
 rawdog photo.ARW -q 85
+```
+
+Output as 16-bit TIFF:
+
+```sh
+rawdog photo.ARW -f tiff
+```
+
+Output as 16-bit PNG with resize:
+
+```sh
+rawdog ./photos/ -f png -r 2048
 ```
 
 Combine options:
